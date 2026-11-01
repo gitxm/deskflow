@@ -279,11 +279,7 @@ void MainWindow::connectSlots()
   connect(&m_coreProcess, &CoreProcess::peerFingerprint, this, &MainWindow::handlePeerFingerprint);
   connect(&m_coreProcess, &CoreProcess::missingKeyboardLayouts, this, &MainWindow::handleMissingKeyboardLayouts);
 
-  if (Settings::value(Settings::Gui::AutoStartCore).toBool()) {
-    connect(ui->btnToggleCore, &QPushButton::clicked, m_actionStopCore, &QAction::trigger, Qt::UniqueConnection);
-  } else {
-    connect(ui->btnToggleCore, &QPushButton::clicked, m_actionStartCore, &QAction::trigger, Qt::UniqueConnection);
-  }
+  connect(ui->btnToggleCore, &QPushButton::clicked, m_actionStartCore, &QAction::trigger, Qt::UniqueConnection);
 
   connect(ui->btnRestartCore, &QPushButton::clicked, this, &MainWindow::resetCore);
 
@@ -405,6 +401,14 @@ void MainWindow::coreProcessError(CoreProcess::Error error)
 
 void MainWindow::startCore()
 {
+  // No Mode Set
+  if (m_coreProcess.mode() == CoreMode::None)
+    return;
+
+  // Invalid client settings
+  if (m_coreProcess.mode() == CoreMode::Client && Settings::value(Settings::Client::RemoteHost).toString().isEmpty())
+    return;
+
   // Save current IP state when server starts
   if (m_coreProcess.mode() == CoreMode::Server && Settings::value(Settings::Core::Interface).toString().isEmpty()) {
     m_serverStartIPs = NetworkMonitor::validAddresses();
@@ -651,8 +655,6 @@ void MainWindow::open()
   }
 
   if (Settings::value(Settings::Gui::AutoStartCore).toBool()) {
-    if (ui->rbModeClient->isChecked() && ui->lineHostname->text().isEmpty())
-      return;
     startCore();
   }
 }
